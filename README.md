@@ -1,10 +1,49 @@
-# AI Support Ticket Processor
+# AI Workflow Demo
 
-An AI-powered workflow that reads raw customer support messages and automatically triages them — no manual review needed for the first pass.
+Two AI-powered tools built with the Anthropic Claude API.
 
 ---
 
-## What It Does
+## Project 1 — Job Search Dashboard
+
+Pulls live job postings from 80+ target companies and scores each one for fit and conversion likelihood using Claude.
+
+### What It Does
+
+- Searches **LinkedIn, Indeed, and Glassdoor** via JSearch API across NYC, SF, and London
+- Queries **Greenhouse, Lever, and Ashby** job boards directly from 80+ high-growth companies (Anthropic, OpenAI, Ramp, Rippling, Databricks, Monzo, and more)
+- Filters out irrelevant roles (engineering, admin, overly senior titles)
+- Scores each job with Claude on two dimensions:
+  - **Fit score** — how well the role matches the candidate's background
+  - **Conversion score** — realistic offer likelihood based on company type and competition level
+- Renders a **live web dashboard** with filter buttons, color-coded scores, and direct application links
+
+### How to Run
+
+```bash
+export ANTHROPIC_API_KEY="your-key"
+export RAPIDAPI_KEY="your-key"
+pip install -r requirements.txt
+python3 dashboard.py
+```
+
+Opens `dashboard.html` in your browser automatically.
+
+### How It Works
+
+```
+JSearch API (LinkedIn/Indeed/Glassdoor)  ──┐
+                                            ├──▶ Filter ──▶ Claude scoring ──▶ HTML dashboard
+Greenhouse / Lever / Ashby (80 companies) ──┘
+```
+
+---
+
+## Project 2 — AI Support Ticket Processor
+
+An AI-powered REST API that reads raw customer support messages and automatically triages them.
+
+### What It Does
 
 Given a raw support message like:
 
@@ -12,71 +51,37 @@ Given a raw support message like:
 
 It returns:
 
-```
-Summary     : Customer reports a duplicate charge of $29.99 on their account.
-Category    : billing
-Next Action : Pull the customer's billing history and issue a refund for the duplicate charge.
-```
-
----
-
-## Why It's Useful
-
-Support teams spend a lot of time reading and routing tickets before any real work begins. This prototype automates that first step — classification and triage — so agents can focus on resolution rather than sorting.
-
----
-
-## How It Works
-
-1. A support message is passed to Claude (Anthropic's AI model) via the API
-2. A structured prompt asks Claude to return JSON with three fields: `summary`, `category`, and `next_action`
-3. The JSON is parsed and printed — ready to be piped into a ticketing system, database, or Slack alert
-
-```
-User message → Prompt → Claude API → JSON response → Parsed output
+```json
+{
+  "summary": "Customer reports a duplicate charge of $29.99 on their account.",
+  "category": "billing",
+  "next_action": "Pull the customer's billing history and issue a refund for the duplicate charge."
+}
 ```
 
----
-
-## How to Run
-
-**1. Clone or copy the project**
+### How to Run
 
 ```bash
-git clone <your-repo-url>
-cd ai-workflow-demo
+export ANTHROPIC_API_KEY="your-key"
+python3 api.py
 ```
 
-**2. Set your API key**
-
-Get a key at [console.anthropic.com](https://console.anthropic.com). Then set it as an environment variable — never hardcode keys in source files.
+Then call it:
 
 ```bash
-export ANTHROPIC_API_KEY="your-key-here"
+curl -X POST http://localhost:8080/triage \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I was charged twice this month"}'
 ```
 
-**3. Install dependencies**
+Live deployment: `https://testy-production-44ad.up.railway.app/triage`
 
-```bash
-pip install -r requirements.txt
+### How It Works
+
 ```
-
-**4. Run it**
-
-```bash
-python main.py
+POST /triage  →  Claude API  →  JSON (summary, category, next_action)
+GET  /health  →  {"status": "ok"}
 ```
-
----
-
-## What I Would Build Next
-
-- **REST API wrapper** — expose this as a `/triage` endpoint so any frontend or integration can call it
-- **Confidence scoring** — ask Claude to rate how confident it is in the category, and flag low-confidence tickets for human review
-- **Priority detection** — add an `urgency` field (low / medium / high) based on keywords and tone
-- **CRM integration** — write triaged tickets directly to Zendesk, Linear, or a Postgres table
-- **Batch processing** — use the Anthropic Batches API to process thousands of historical tickets at 50% cost for training data or analytics
-- **Evaluation harness** — run 50 labeled tickets through the model and track category accuracy over time as the prompt evolves
 
 ---
 
@@ -84,7 +89,21 @@ python main.py
 
 ```
 ai-workflow-demo/
-├── main.py           # Core logic — prompt, API call, output
-├── requirements.txt  # One dependency: anthropic
-└── README.md         # This file
+├── dashboard.py      # Fetches, scores, and renders the job dashboard
+├── jobs.py           # Job fetching logic (JSearch + ATS APIs) + Claude scoring
+├── dashboard.html    # Generated output — open in any browser
+├── main.py           # Support ticket processor core logic
+├── api.py            # REST API wrapper (http.server, no framework)
+├── requirements.txt  # anthropic, requests
+└── Procfile          # Railway deployment config
 ```
+
+---
+
+## Tech Stack
+
+- **Claude API** (Anthropic) — claude-haiku-4-5 for fast, structured JSON scoring
+- **JSearch via RapidAPI** — LinkedIn, Indeed, Glassdoor aggregation
+- **Greenhouse / Lever / Ashby APIs** — free, no-auth job board APIs
+- **Python stdlib only** — no Flask, no FastAPI, no framework
+- **Deployed on Railway**
